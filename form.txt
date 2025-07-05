@@ -1,0 +1,264 @@
+<!-- 
+  File: form.html
+  Deskripsi: Halaman untuk menambah atau mengedit data investasi.
+-->
+<div id="form-card" class="card">
+    <h2 id="form-title">Tambah Data Investasi</h2>
+    <form id="investasi-form">
+        <!-- Input tersembunyi untuk menyimpan nomor baris saat mode edit -->
+        <input type="hidden" id="rowNumber" name="rowNumber">
+        
+        <div class="form-group">
+            <label for="tanggal">Tanggal Beli</label>
+            <input type="date" id="tanggal" name="tanggal" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+            <label for="berat">Berat Emas</label>
+            <select id="berat" name="berat" class="form-control" required>
+                <option value="" disabled selected>Memuat opsi...</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="nominal">Nominal Beli (Rp)</label>
+            <input type="number" id="nominal" name="nominal" class="form-control" placeholder="Contoh: 1000000" required>
+        </div>
+
+        <div id="form-feedback" class="feedback"></div>
+
+        <div class="button-group">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i><span id="save-btn-text">Simpan</span>
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                <i class="fas fa-times"></i> Batal
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .card {
+        background: var(--card-bg);
+        padding: 25px 30px;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--text-dark);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background-color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+        font-size: 1em;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+    }
+
+    .button-group {
+        margin-top: 30px;
+        display: flex;
+        gap: 15px;
+        border-top: 1px solid var(--border-color);
+        padding-top: 20px;
+    }
+
+    .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1em;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn:active {
+        transform: scale(0.96);
+    }
+
+    .btn-primary {
+        background-color: var(--accent-color);
+        color: var(--primary-bg);
+    }
+    .btn-primary:hover {
+        background-color: #0ea5e9; /* Sky 600 */
+    }
+
+    .btn-secondary {
+        background-color: var(--border-color);
+        color: var(--text-dark);
+    }
+    .btn-secondary:hover {
+        background-color: #d1d5db; /* Cool Gray 300 */
+    }
+
+    .feedback {
+        margin-top: 20px;
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        display: none; /* Sembunyi secara default */
+    }
+    .feedback.success {
+        background-color: #dcfce7; /* Green 100 */
+        color: #166534; /* Green 800 */
+        display: block;
+    }
+    .feedback.error {
+        background-color: #fee2e2; /* Red 100 */
+        color: #991b1b; /* Red 800 */
+        display: block;
+    }
+</style>
+
+<script>
+    /**
+     * Menampilkan pesan umpan balik di dalam form.
+     * @param {string} message Pesan yang akan ditampilkan.
+     * @param {boolean} isSuccess True jika sukses, false jika error.
+     */
+    function showFormFeedback(message, isSuccess) {
+        const feedbackDiv = document.getElementById('form-feedback');
+        if (!feedbackDiv) return;
+        feedbackDiv.textContent = message;
+        feedbackDiv.className = isSuccess ? 'feedback success' : 'feedback error';
+        
+        // Sembunyikan pesan setelah 4 detik
+        setTimeout(() => {
+            if (feedbackDiv) feedbackDiv.style.display = 'none';
+        }, 4000);
+    }
+
+    /**
+     * Mereset form ke kondisi awal.
+     */
+    function resetForm() {
+        const form = document.getElementById('investasi-form');
+        if (form) form.reset();
+        
+        // Reset elemen-elemen UI ke state "Tambah Baru"
+        document.getElementById('rowNumber').value = '';
+        document.getElementById('form-title').textContent = 'Tambah Data Investasi';
+        document.getElementById('save-btn-text').textContent = 'Simpan';
+        globalState.recordToEdit = null; // Hapus state edit
+    }
+
+    /**
+     * Mengisi dropdown 'berat' dengan opsi dari server.
+     */
+    function loadBeratOptions() {
+        const select = document.getElementById('berat');
+        google.script.run
+            .withSuccessHandler(options => {
+                if (!select) return;
+                select.innerHTML = '<option value="" disabled selected>-- Pilih Berat --</option>';
+                if (options && options.length > 0) {
+                    options.forEach(opt => select.add(new Option(opt, opt)));
+                } else {
+                    select.innerHTML = '<option value="">Gagal memuat opsi</option>';
+                }
+            })
+            .withFailureHandler(err => {
+                if (select) select.innerHTML = '<option value="">Error</option>';
+                showFormFeedback("Gagal memuat opsi berat: " + err.message, false);
+            })
+            .getBeratEmasOptions();
+    }
+
+    /**
+     * Mengisi form dengan data yang ada untuk mode edit.
+     * @param {number} rowNumber Nomor baris dari data yang akan diedit.
+     */
+    function populateFormForEdit(rowNumber) {
+        showLoader(true);
+        google.script.run
+            .withSuccessHandler(record => {
+                if (record) {
+                    // Mengubah judul dan teks tombol
+                    document.getElementById('form-title').textContent = 'Edit Data Investasi';
+                    document.getElementById('save-btn-text').textContent = 'Perbarui';
+                    
+                    // Mengisi nilai form
+                    document.getElementById('rowNumber').value = record.rowNumber;
+                    document.getElementById('tanggal').value = record.tanggal;
+                    // Format berat agar cocok dengan opsi dropdown, contoh: "1 gr"
+                    document.getElementById('berat').value = `${record.berat}`;
+                    document.getElementById('nominal').value = record.nominal;
+                } else {
+                    showFormFeedback('Data untuk diedit tidak ditemukan.', false);
+                }
+                showLoader(false);
+            })
+            .withFailureHandler(err => {
+                showFormFeedback('Gagal memuat data untuk diedit: ' + err.message, false);
+                showLoader(false);
+            })
+            .getInvestasiById(rowNumber);
+    }
+
+    // --- EVENT LISTENERS ---
+
+    // Menangani submit form
+    document.getElementById('investasi-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        showLoader(true);
+        const form = e.target;
+        const formData = {
+            rowNumber: form.rowNumber.value,
+            tanggal: form.tanggal.value,
+            berat: form.berat.value, // Nilai sudah termasuk " gr", akan di-parse di server
+            nominal: form.nominal.value,
+        };
+
+        google.script.run
+            .withSuccessHandler(response => {
+                showLoader(false);
+                showFormFeedback(response, true);
+                resetForm();
+            })
+            .withFailureHandler(err => {
+                showLoader(false);
+                showFormFeedback('Error: ' + err.message, false);
+            })
+            .saveInvestasi(formData);
+    });
+    
+    // --- INISIALISASI HALAMAN ---
+    // Fungsi yang dieksekusi saat halaman ini dimuat
+    (function() {
+        loadBeratOptions();
+        // Cek apakah ada state 'recordToEdit' dari halaman lain
+        if (globalState.recordToEdit) {
+            populateFormForEdit(globalState.recordToEdit);
+        } else {
+             // Set tanggal hari ini sebagai default untuk form tambah baru
+             document.getElementById('tanggal').valueAsDate = new Date();
+        }
+    })();
+</script>

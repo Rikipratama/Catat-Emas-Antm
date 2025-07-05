@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Investasi Emas</title>
+    <!-- Menggunakan Font Awesome untuk ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Menggunakan Google Fonts untuk tampilan yang lebih modern -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS Global & Desain Sistem */
+        :root {
+            --primary-bg: #1e293b; /* Slate 800 */
+            --secondary-bg: #334155; /* Slate 700 */
+            --accent-color: #38bdf8; /* Sky 500 */
+            --text-light: #f1f5f9; /* Slate 100 */
+            --text-dark: #334155; /* Slate 700 */
+            --main-bg: #f8fafc; /* Slate 50 */
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0; /* Slate 200 */
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --error-color: #ef4444; /* Red 500 */
+            --success-color: #22c55e; /* Green 500 */
+            --warning-color: #f59e0b; /* Amber 500 */
+        }
+
+        html {
+            box-sizing: border-box;
+        }
+
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background-color: var(--main-bg);
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Tata Letak Utama */
+        .sidebar {
+            height: 100%;
+            width: 250px;
+            position: fixed;
+            z-index: 100;
+            top: 0;
+            left: 0;
+            background-color: var(--primary-bg);
+            overflow-x: hidden;
+            transition: transform 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-250px);
+        }
+
+        #main-content {
+            transition: margin-left .3s ease-in-out;
+            margin-left: 250px;
+            padding: 2rem;
+        }
+        
+        #main-content.full-width {
+            margin-left: 0;
+        }
+
+        /* Tombol Toggle Sidebar */
+        .toggle-btn {
+            display: none; /* Disembunyikan di desktop, muncul di mobile */
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 101;
+            cursor: pointer;
+            background: var(--primary-bg);
+            color: var(--text-light);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            box-shadow: var(--shadow);
+        }
+
+        /* Header Sidebar */
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-light);
+            font-size: 1.5em;
+            font-weight: 600;
+            border-bottom: 1px solid var(--secondary-bg);
+        }
+        .sidebar-header .fa-coins {
+            color: var(--accent-color);
+            margin-right: 10px;
+        }
+
+        /* Link Navigasi */
+        .sidebar-nav {
+            flex-grow: 1;
+        }
+        .sidebar a {
+            padding: 15px 20px;
+            text-decoration: none;
+            font-size: 1.1em;
+            font-weight: 500;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: background-color 0.2s, padding-left 0.2s;
+        }
+        .sidebar a:hover {
+            background-color: var(--secondary-bg);
+        }
+        .sidebar a.active {
+            background-color: var(--accent-color);
+            color: var(--primary-bg);
+            font-weight: 700;
+        }
+
+        /* Footer Sidebar */
+        .sidebar-footer {
+            padding: 10px;
+            border-top: 1px solid var(--secondary-bg);
+        }
+
+        /* Loader */
+        #loader-overlay {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(4px);
+        }
+        #loader {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border: 5px solid var(--border-color);
+            border-top: 5px solid var(--accent-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Modal Konfirmasi */
+        #confirm-modal {
+            display: none;
+            position: fixed;
+            z-index: 1500;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s;
+        }
+        .modal-content {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            animation: slideIn 0.3s;
+        }
+        .modal-content p { font-size: 1.1em; margin-top: 0; }
+        .modal-buttons { margin-top: 25px; display: flex; justify-content: center; gap: 15px; }
+        .modal-btn { padding: 10px 25px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: transform 0.1s; }
+        .modal-btn:active { transform: scale(0.95); }
+        .modal-btn-confirm { background-color: var(--error-color); color: white; }
+        .modal-btn-cancel { background-color: var(--border-color); color: var(--text-dark); }
+        @keyframes fadeIn { from {opacity: 0} to {opacity: 1} }
+        @keyframes slideIn { from {transform: translateY(-30px); opacity: 0} to {transform: translateY(0); opacity: 1} }
+
+        /* Responsif untuk Mobile */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-250px);
+            }
+            .sidebar.visible {
+                transform: translateX(0);
+            }
+            #main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+            .toggle-btn {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Overlay dan Loader Global -->
+    <div id="loader-overlay">
+        <div id="loader"></div>
+    </div>
+
+    <!-- Modal Konfirmasi Global -->
+    <div id="confirm-modal">
+        <div class="modal-content">
+            <p id="confirm-modal-text">Apakah Anda yakin?</p>
+            <div class="modal-buttons">
+                <button id="modal-btn-yes" class="modal-btn modal-btn-confirm">Ya, Lanjutkan</button>
+                <button id="modal-btn-no" class="modal-btn modal-btn-cancel">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tombol untuk membuka sidebar di mobile -->
+    <button class="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+
+    <!-- Sidebar Navigasi -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-coins"></i> EmasKu
+        </div>
+        <nav class="sidebar-nav">
+            <a href="JavaScript:void(0)" class="nav-link" onclick="loadPage('dashboard', this)">
+                <i class="fas fa-chart-line fa-fw"></i> Dashboard
+            </a>
+            <a href="JavaScript:void(0)" class="nav-link active" onclick="loadPage('form', this)">
+                <i class="fas fa-file-invoice-dollar fa-fw"></i> Form Investasi
+            </a>
+            <a href="JavaScript:void(0)" class="nav-link" onclick="loadPage('laporan', this)">
+                <i class="fas fa-chart-line fa-fw"></i> Laporan
+            </a>
+            <a href="JavaScript:void(0)" class="nav-link" onclick="loadPage('hargaemas', this)">
+                <i class="fas fa-tags fa-fw"></i> Harga Emas
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="JavaScript:void(0)" id="spreadsheet-link" target="_blank" rel="noopener noreferrer">
+                <i class="fas fa-table fa-fw"></i> Buka Google Sheet
+            </a>
+        </div>
+    </div>
+
+    <!-- Konten Utama Halaman -->
+    <main id="main-content"></main>
+
+    <script>
+        // --- STATE MANAJEMEN GLOBAL ---
+        // Variabel untuk menyimpan state antar halaman, misal saat klik edit
+        let globalState = {
+            recordToEdit: null,
+            confirmCallback: null
+        };
+
+        // --- REFERENSI ELEMEN DOM ---
+        const mainContentEl = document.getElementById('main-content');
+        const loaderOverlayEl = document.getElementById('loader-overlay');
+        const confirmModalEl = document.getElementById('confirm-modal');
+        const sidebarEl = document.getElementById('sidebar');
+
+        // --- FUNGSI UTAMA UI ---
+
+        /**
+         * Menampilkan atau menyembunyikan loader.
+         * @param {boolean} show True untuk menampilkan, false untuk menyembunyikan.
+         */
+        function showLoader(show) {
+            loaderOverlayEl.style.display = show ? 'block' : 'none';
+        }
+
+        /**
+         * Menampilkan modal konfirmasi.
+         * @param {string} message Pesan yang akan ditampilkan di modal.
+         * @param {function} callback Fungsi yang akan dipanggil dengan hasil (true/false).
+         */
+        function showConfirm(message, callback) {
+            document.getElementById('confirm-modal-text').textContent = message;
+            confirmModalEl.style.display = 'flex';
+            globalState.confirmCallback = callback;
+        }
+
+        /**
+         * Mengatur sidebar di tampilan mobile.
+         */
+        function toggleSidebar() {
+            sidebarEl.classList.toggle('visible');
+        }
+
+        // --- LOGIKA PEMUATAN HALAMAN ---
+
+        /**
+         * Memuat konten halaman secara dinamis dan mengeksekusi skripnya.
+         * @param {string} page Nama file HTML yang akan dimuat (tanpa ekstensi).
+         * @param {HTMLElement} linkElement Elemen navigasi yang diklik.
+         */
+       function loadPage(page, linkElement) {
+    console.log('🔄 Loading page:', page);
+    showLoader(true);
+    
+    // Prevent default action jika ada
+    if (event) {
+        event.preventDefault();
+    }
+    
+    // Tutup sidebar di mobile
+    if (sidebarEl.classList.contains('visible')) {
+        sidebarEl.classList.remove('visible');
+    }
+
+    google.script.run
+        .withSuccessHandler(function(htmlString) {
+            console.log('✅ Success loading:', page);
+            console.log('📏 HTML length:', htmlString ? htmlString.length : 0);
+            
+            if (!htmlString || htmlString.trim() === '') {
+                console.log('❌ Empty HTML received for:', page);
+                mainContentEl.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h4>Halaman Kosong</h4>
+                        <p>File <strong>${page}.html</strong> tidak ditemukan atau kosong.</p>
+                    </div>
+                `;
+                showLoader(false);
+                return;
+            }
+            
+            // Set konten
+            mainContentEl.innerHTML = htmlString;
+            executeScripts();
+            updateActiveNavLink(linkElement);
+            showLoader(false);
+            
+            console.log('✅ Page loaded successfully:', page);
+        })
+        .withFailureHandler(function(err) {
+            console.error('❌ Error loading page:', page, err);
+            mainContentEl.innerHTML = `
+                <div class="alert alert-danger">
+                    <h4>Error Loading ${page}</h4>
+                    <p><strong>Error:</strong> ${err.message || err.toString()}</p>
+                    <p>Pastikan file <strong>${page}.html</strong> ada dan valid.</p>
+                </div>
+            `;
+            showLoader(false);
+        })
+        .include(page);
+}
+
+        /**
+         * Menjalankan semua script yang ada di dalam HTML yang dimuat
+         */
+        function executeScripts() {
+            const scripts = mainContentEl.querySelectorAll("script");
+            scripts.forEach(function(oldScript) {
+                const newScript = document.createElement("script");
+                
+                // Copy semua atribut
+                Array.from(oldScript.attributes).forEach(function(attr) {
+                    newScript.setAttribute(attr.name, attr.value);
+                });
+                
+                // Copy konten script
+                newScript.textContent = oldScript.textContent;
+                
+                // Ganti script lama dengan yang baru
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+        }
+
+        /**
+         * Update link navigasi yang aktif
+         */
+        function updateActiveNavLink(linkElement) {
+            document.querySelectorAll('.nav-link').forEach(function(link) {
+                link.classList.remove('active');
+            });
+            if (linkElement) {
+                linkElement.classList.add('active');
+            }
+        }
+
+        // --- INISIALISASI APLIKASI ---
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing app...');
+            
+            // Muat halaman form sebagai halaman default
+            const initialLink = document.querySelector('a[onclick*="form"]');
+            loadPage('form', initialLink);
+
+            // Ambil URL Google Sheet
+            google.script.run
+                .withSuccessHandler(function(url) {
+                    document.getElementById('spreadsheet-link').href = url;
+                })
+                .withFailureHandler(function(err) {
+                    console.error('Error getting spreadsheet URL:', err);
+                })
+                .getSpreadsheetUrl();
+
+            // Setup event listener untuk tombol modal
+            document.getElementById('modal-btn-yes').addEventListener('click', function() {
+                if (globalState.confirmCallback) globalState.confirmCallback(true);
+                confirmModalEl.style.display = 'none';
+            });
+            
+            document.getElementById('modal-btn-no').addEventListener('click', function() {
+                if (globalState.confirmCallback) globalState.confirmCallback(false);
+                confirmModalEl.style.display = 'none';
+            });
+        });
+
+    </script>
+
+</body>
+</html>

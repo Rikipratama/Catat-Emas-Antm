@@ -1,0 +1,194 @@
+<!-- 
+  File: hargaemas.html
+  Deskripsi: Halaman untuk mengelola data master harga emas dan harga buyback umum.
+-->
+<div class="main-container">
+    <div class="card">
+        <h2>Manajemen Harga Emas</h2>
+        <p>Data ini digunakan untuk mengisi opsi 'Berat Emas' pada form investasi. Ubah data langsung di dalam tabel dan klik 'Simpan' pada baris yang sesuai.</p>
+        
+        <div id="harga-emas-feedback" class="feedback"></div>
+
+        <div class="table-container">
+            <table id="harga-emas-table">
+                <thead>
+                    <tr>
+                        <th>Tanggal Update</th>
+                        <th>Berat (gr)</th>
+                        <th>Harga Beli (Rp)</th>
+                        <th>Harga Buyback (Rp)</th>
+                        <th class="aksi">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="harga-emas-tbody">
+                    <!-- Data harga emas akan dimuat di sini -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Update Harga Buyback Umum</h3>
+        <p>Harga ini yang akan digunakan untuk semua perhitungan profit/loss di halaman laporan.</p>
+        
+        <div id="buyback-feedback" class="feedback"></div>
+
+        <div class="form-group" style="max-width: 400px;">
+            <label for="buyback-price">Harga Buyback Saat Ini (per gram)</label>
+            <input type="number" id="buyback-price" class="form-control" placeholder="Masukkan harga...">
+        </div>
+        <button class="btn btn-primary" onclick="updateBuyback()">
+            <i class="fas fa-sync-alt"></i> Update Harga
+        </button>
+    </div>
+</div>
+
+
+<style>
+    .main-container {
+        display: grid;
+        gap: 30px;
+    }
+    .card {
+        background: var(--card-bg);
+        padding: 25px 30px;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+    }
+    .card h2, .card h3 { margin-top: 0; }
+    .card p { color: #64748b; font-size: 0.95em; max-width: 80ch; }
+    .table-container { overflow-x: auto; margin-top: 20px; }
+    #harga-emas-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+    #harga-emas-table th, #harga-emas-table td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); text-align: left; vertical-align: middle; }
+    #harga-emas-table th { background-color: #f1f5f9; font-weight: 600; font-size: 0.9em; text-transform: uppercase; }
+    #harga-emas-table .aksi { text-align: center; }
+    #harga-emas-table input {
+        width: 100%;
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background-color: #f8fafc;
+    }
+    .btn { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+    .btn-primary { background-color: var(--accent-color); color: var(--primary-bg); }
+    .btn-primary:hover { background-color: #0ea5e9; }
+    .btn-save {
+        background-color: var(--success-color);
+        color: white;
+        padding: 8px 15px;
+        font-size: 0.9em;
+    }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+    .form-control { width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); }
+    .feedback { margin-bottom: 15px; padding: 12px; border-radius: 8px; text-align: center; display: none; }
+    .feedback.success { background-color: #dcfce7; color: #166534; display: block; }
+    .feedback.error { background-color: #fee2e2; color: #991b1b; display: block; }
+</style>
+
+<script>
+    function showHargaEmasFeedback(message, isSuccess) {
+        const feedbackDiv = document.getElementById('harga-emas-feedback');
+        if (feedbackDiv) {
+            feedbackDiv.textContent = message;
+            feedbackDiv.className = isSuccess ? 'feedback success' : 'feedback error';
+            setTimeout(() => { feedbackDiv.style.display = 'none'; }, 4000);
+        }
+    }
+
+    function showBuybackFeedback(message, isSuccess) {
+        const feedbackDiv = document.getElementById('buyback-feedback');
+        if (feedbackDiv) {
+            feedbackDiv.textContent = message;
+            feedbackDiv.className = isSuccess ? 'feedback success' : 'feedback error';
+            setTimeout(() => { feedbackDiv.style.display = 'none'; }, 4000);
+        }
+    }
+
+    function loadHargaEmasData() {
+        showLoader(true);
+        const tbody = document.getElementById('harga-emas-tbody');
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px;">Memuat data...</td></tr>';
+
+        google.script.run
+            .withSuccessHandler(data => {
+                tbody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px;">Tidak ada data harga emas.</td></tr>';
+                } else {
+                    data.forEach((row, index) => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><input type="date" class="form-control" value="${row[0] || ''}"></td>
+                            <td><input type="number" step="any" class="form-control" value="${row[1] || ''}"></td>
+                            <td><input type="number" class="form-control" value="${row[2] || ''}"></td>
+                            <td><input type="number" class="form-control" value="${row[3] || ''}"></td>
+                            <td class="aksi">
+                                <button class="btn btn-save" onclick="saveRow(this, ${index})"><i class="fas fa-save"></i> Simpan</button>
+                            </td>`;
+                        tbody.appendChild(tr);
+                    });
+                }
+                showLoader(false);
+            })
+            .withFailureHandler(err => {
+                showLoader(false);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 40px; color:var(--error-color);"><b>Gagal memuat data:</b> ${err.message}</td></tr>`;
+            })
+            .getHargaEmasData();
+    }
+
+    function saveRow(button, rowIndex) {
+        showLoader(true);
+        const row = button.closest('tr');
+        const inputs = row.querySelectorAll('input');
+        
+        const dataObject = {
+            rowIndex: rowIndex,
+            tanggal: inputs[0].value,
+            berat: inputs[1].value,
+            hargaBeli: inputs[2].value,
+            hargaBuyback: inputs[3].value
+        };
+
+        google.script.run
+            .withSuccessHandler(response => {
+                showLoader(false);
+                showHargaEmasFeedback(response, true);
+            })
+            .withFailureHandler(err => {
+                showLoader(false);
+                showHargaEmasFeedback('Error: ' + err.message, false);
+            })
+            .saveHargaEmas(dataObject);
+    }
+
+    function loadBuybackPrice() {
+        google.script.run.withSuccessHandler(price => {
+            const el = document.getElementById('buyback-price');
+            if(el) el.value = price;
+        }).getBuybackPrice();
+    }
+
+    function updateBuyback() {
+        showLoader(true);
+        const price = document.getElementById('buyback-price').value;
+        google.script.run
+            .withSuccessHandler(response => {
+                showLoader(false);
+                showBuybackFeedback(response, true);
+            })
+            .withFailureHandler(err => {
+                showLoader(false);
+                showBuybackFeedback('Error: ' + err.message, false);
+            })
+            .updateBuybackPrice(price);
+    }
+
+    // --- PERBAIKAN ---
+    // Hapus event listener DOMContentLoaded dan panggil fungsi langsung.
+    // Ini memastikan data dimuat setiap kali file ini di-include.
+    loadHargaEmasData();
+    loadBuybackPrice();
+
+</script>
